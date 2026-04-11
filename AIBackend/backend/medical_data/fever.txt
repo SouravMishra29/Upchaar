@@ -1,0 +1,32 @@
+Definition:
+Fever is a temporary increase in body temperature, usually due to infection.
+
+Common Causes:
+- Viral infections (most common)
+- Bacterial infections
+- Heat exhaustion
+- Inflammatory conditions
+
+Risk Factors:
+- Age (children, elderly)
+- Chronic diseases (diabetes, heart disease)
+- Weak immune system
+
+Key Symptoms:
+- Elevated temperature (>100.4°F)
+- Chills
+- Sweating
+- Headache
+- Muscle aches
+
+Red Flags (Seek Immediate Care):
+- Fever >103°F
+- Lasting more than 3 days
+- Difficulty breathing
+- Confusion
+- Persistent vomiting
+
+General Care:
+- Hydration
+- Rest
+- Monitor temperature regularly
