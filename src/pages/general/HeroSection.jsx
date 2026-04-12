@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 function HeroSection() {
   return (
-    <section className="relative pt-[120px] pb-20 overflow-hidden">
+    <section id="hero" className="relative pt-[120px] pb-20 overflow-hidden">
 
       {/* 🔥 GRADIENT LIGHTING */}
       <div className="absolute inset-0 -z-10">
@@ -32,7 +32,11 @@ function HeroSection() {
               Get Started
             </button>
 
-            <button className="px-6 py-3 border border-gray-300 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <button className="px-6 py-3 border border-gray-300 dark:border-gray-600 
+              text-gray-800 dark:text-gray-200
+              rounded-xl 
+              hover:bg-gray-100 dark:hover:bg-gray-800 
+              transition">
               Learn More
             </button>
           </div>
@@ -45,7 +49,6 @@ function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
         >
 
-          {/* FLOATING IMAGE */}
           <motion.img
             src="https://img.freepik.com/free-vector/doctor-character-background_1270-84.jpg"
             className="w-full max-w-md rounded-2xl shadow-xl"
@@ -53,7 +56,6 @@ function HeroSection() {
             transition={{ repeat: Infinity, duration: 4 }}
           />
 
-          {/* GLASS CARD */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3
             bg-white/20 dark:bg-gray-800/30
             backdrop-blur-md border border-white/30

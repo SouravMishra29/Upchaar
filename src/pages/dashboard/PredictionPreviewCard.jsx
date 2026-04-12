@@ -19,7 +19,7 @@ ring-1 ring-black/5 dark:ring-white/10"
           Nearby Prediction
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-400 mt-1">
           Health trends in your area
         </p>
       </div>
@@ -27,17 +27,17 @@ ring-1 ring-black/5 dark:ring-white/10"
       {/* CONTENT */}
       <div className="mt-4 space-y-3 flex-1 overflow-hidden">
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm flex justify-between">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 flex justify-between">
           <span>Flu Cases</span>
           <span className="text-red-500 font-medium">↑ High</span>
         </div>
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm flex justify-between">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 flex justify-between">
           <span>Dengue Risk</span>
           <span className="text-yellow-500 font-medium">Medium</span>
         </div>
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm flex justify-between">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 flex justify-between">
           <span>Air Quality</span>
           <span className="text-green-500 font-medium">Good</span>
         </div>

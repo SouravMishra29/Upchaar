@@ -19,7 +19,7 @@ ring-1 ring-black/5 dark:ring-white/10"
           Chat Assistant
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-400 mt-1">
           AI-powered symptom analysis
         </p>
       </div>
@@ -28,7 +28,7 @@ ring-1 ring-black/5 dark:ring-white/10"
       <div className="mt-6 space-y-3 flex-1 overflow-hidden">
 
         <div className="flex justify-start">
-          <div className="bg-gray-100 dark:bg-gray-800 text-sm px-4 py-2 rounded-xl max-w-[75%]">
+          <div className="bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 px-4 py-2 rounded-xl max-w-[75%]">
             I have headache since morning
           </div>
         </div>

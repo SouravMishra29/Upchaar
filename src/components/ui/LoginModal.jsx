@@ -16,7 +16,7 @@ function LoginModal({ isOpen, onClose }) {
   const handleSubmit = () => {
     if (!form.email || !form.password) return;
 
-    login(); // 🔥 fake login
+    login(form); // 🔥 fake login
     onClose();
     navigate("/dashboard"); // Redirect to dashboard after login
   };

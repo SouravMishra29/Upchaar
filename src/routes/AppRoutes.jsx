@@ -6,7 +6,7 @@ import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Chatbot from "../pages/general/chatbot";
 import Dashboard from "../pages/dashboard/Dashboard";
-
+import Profile from "../pages/patient/Profile";
 function AppRoutes() {
   return (
     <Routes>
@@ -15,6 +15,7 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/chat" element={<Chatbot />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 }

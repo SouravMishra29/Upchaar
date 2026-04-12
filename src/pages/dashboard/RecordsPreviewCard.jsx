@@ -19,7 +19,7 @@ ring-1 ring-black/5 dark:ring-white/10"
           Previous Records
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-400 mt-1">
           Access your medical history
         </p>
       </div>
@@ -27,15 +27,15 @@ ring-1 ring-black/5 dark:ring-white/10"
       {/* RECORD PREVIEW */}
       <div className="mt-4 space-y-3 flex-1 overflow-hidden">
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200">
           Fever • 12 Aug 2025
         </div>
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200">
           Cold & Cough • 03 Aug 2025
         </div>
 
-        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm">
+        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200">
           Body Pain • 28 July 2025
         </div>
 

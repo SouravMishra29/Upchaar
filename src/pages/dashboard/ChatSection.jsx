@@ -95,7 +95,7 @@ function ChatSection() {
           placeholder="Describe your symptoms..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 px-3 py-2 bg-transparent outline-none text-gray-800 dark:text-white"
+          className="flex-1 px-3 py-2 bg-transparent outline-none text-white placeholder-gray-400"
         />
 
         <button
