@@ -1,111 +1,258 @@
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { sendChatMessage, saveRecord } from "../../services/api";
 
-const symptomsList = [
-  "Fever",
-  "Headache",
-  "Cold",
-  "Cough",
-  "Fatigue",
-  "Body Pain"
-];
+const symptomsList = ["Fever", "Headache", "Cold", "Cough", "Fatigue", "Body Pain"];
+
+// ── Web Speech API availability check ──────────
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+const speechSupported = !!SpeechRecognition;
 
 function ChatSection() {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      text: "Hi 👋 Tell me your symptoms or select one below."
-    }
-  ]);
+  const { user } = useAuth();
 
-  const [input, setInput] = useState("");
-  const bottomRef = useRef();
+  const [messages, setMessages] = useState([
+    { role: "assistant", text: "Hi 👋 Tell me your symptoms or select one below." },
+  ]);
+  const [input,      setInput]      = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [saved,      setSaved]      = useState(false);
+  const [listening,  setListening]  = useState(false);   // voice state
+  const [voiceError, setVoiceError] = useState("");
+
+  const bottomRef      = useRef();
+  const recognitionRef = useRef(null);
+  const allSymptoms    = useRef([]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = (text) => {
-    if (!text.trim()) return;
+  // ── Voice input ────────────────────────────
+  const startListening = () => {
+    if (!speechSupported) {
+      setVoiceError("Voice input not supported in this browser. Use Chrome.");
+      return;
+    }
+    setVoiceError("");
 
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    const recognition = new SpeechRecognition();
+    recognition.lang          = "en-IN";   // Indian English
+    recognition.interimResults = true;
+    recognition.continuous     = false;
+    recognitionRef.current     = recognition;
+
+    recognition.onstart  = () => setListening(true);
+    recognition.onend    = () => setListening(false);
+    recognition.onerror  = (e) => {
+      setListening(false);
+      setVoiceError(e.error === "not-allowed"
+        ? "Microphone permission denied. Allow mic access in browser settings."
+        : `Voice error: ${e.error}`);
+    };
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setInput(transcript);
+    };
+
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
+  // ── Send message ────────────────────────────
+  const sendMessage = async (text) => {
+    const trimmed = text?.trim();
+    if (!trimmed || loading) return;
+
+    const newMessages = [...messages, { role: "user", text: trimmed }];
+    setMessages(newMessages);
     setInput("");
+    setLoading(true);
+    if (listening) stopListening();
 
-    setTimeout(() => {
+    try {
+      const data  = await sendChatMessage(newMessages, user?.id || null);
+      const reply = data.reply || "No response.";
+
+      // Accumulate detected symptoms returned by backend
+      if (data.symptoms?.length) {
+        allSymptoms.current = [...new Set([...allSymptoms.current, ...data.symptoms])];
+      }
+
+      const finalMessages = [...newMessages, { role: "assistant", text: reply }];
+      setMessages(finalMessages);
+
+      // Save full session to DB once per chat (after first AI reply)
+      if (user?.id && !saved) {
+        await saveRecord({
+          messages:  finalMessages,
+          aiSummary: reply,
+          symptoms:  allSymptoms.current,
+        });
+        setSaved(true);
+      }
+    } catch {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          text: "Analyzing symptoms... (AI response coming soon)"
-        }
+        { role: "assistant", text: "Server error. Please try again." },
       ]);
-    }, 700);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    setMessages([{ role: "assistant", text: "Hi 👋 Tell me your symptoms or select one below." }]);
+    setSaved(false);
+    setInput("");
+    allSymptoms.current = [];
+    setVoiceError("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden"> {/* 🔥 FIX */}
+    <div className="h-full flex flex-col overflow-hidden">
 
-      {/* HEADER */}
-      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">
-        Chat Assistant
-      </h2>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between mb-3 shrink-0">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Chat Assistant</h2>
+        <div className="flex items-center gap-2">
+          {saved && (
+            <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 px-2.5 py-1 rounded-full">
+              ✅ Saved to records
+            </span>
+          )}
+          <button onClick={handleNewChat}
+            className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            + New Chat
+          </button>
+        </div>
+      </div>
 
-      {/* QUICK OPTIONS */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        {symptomsList.map((symptom, i) => (
-          <button
-            key={i}
-            onClick={() => sendMessage(symptom)}
-            className="px-4 py-1.5 rounded-full bg-primary text-white text-sm hover:opacity-90 transition"
-          >
-            {symptom}
+      {/* ── Quick symptom chips ── */}
+      <div className="flex flex-wrap gap-2 mb-3 shrink-0">
+        {symptomsList.map((s, i) => (
+          <button key={i} onClick={() => sendMessage(s)} disabled={loading}
+            className="px-4 py-1.5 rounded-full bg-primary text-white text-sm hover:opacity-90 transition disabled:opacity-50">
+            {s}
           </button>
         ))}
       </div>
 
-      {/* CHAT AREA */}
+      {/* ── Chat messages ── */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3 border dark:border-gray-700">
-
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`px-4 py-2 rounded-xl text-sm max-w-[70%] ${
-                msg.role === "user"
-                  ? "bg-primary text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white"
-              }`}
-            >
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[78%] whitespace-pre-wrap leading-relaxed ${
+              msg.role === "user"
+                ? "bg-primary text-white rounded-br-sm"
+                : "bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-100 dark:border-gray-600 rounded-bl-sm"
+            }`}>
               {msg.text}
             </div>
           </div>
         ))}
 
+        {loading && (
+          <div className="flex justify-start">
+            <div className="px-4 py-3 rounded-2xl text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-bl-sm">
+              <span className="flex gap-1 items-center text-gray-400">
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+              </span>
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT BAR */}
-      <div className="mt-3 flex items-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl border dark:border-gray-700 shrink-0"> {/* 🔥 FIX */}
+      {/* ── Voice error ── */}
+      {voiceError && (
+        <p className="mt-2 text-xs text-red-500 dark:text-red-400 shrink-0">{voiceError}</p>
+      )}
 
-        <input
-          type="text"
-          placeholder="Describe your symptoms..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="flex-1 px-3 py-2 bg-transparent outline-none text-white placeholder-gray-400"
-        />
+      {/* ── Input bar ── */}
+      <div className="mt-3 shrink-0">
 
-        <button
-          onClick={() => sendMessage(input)}
-          className="px-5 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition"
-        >
-          Send
-        </button>
+        {/* Listening indicator */}
+        {listening && (
+          <div className="flex items-center gap-2 mb-2 text-sm text-red-500 dark:text-red-400 animate-pulse">
+            <span className="w-2.5 h-2.5 bg-red-500 rounded-full inline-block" />
+            Listening… speak now
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+
+          {/* Text input */}
+          <input
+            type="text"
+            placeholder={listening ? "Listening…" : "Describe your symptoms…"}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            className="flex-1 px-2 py-1.5 bg-transparent outline-none text-sm text-gray-800 dark:text-white placeholder-gray-400"
+          />
+
+          {/* Voice button */}
+          {speechSupported && (
+            <button
+              onClick={listening ? stopListening : startListening}
+              disabled={loading}
+              title={listening ? "Stop recording" : "Voice input"}
+              className={`p-2.5 rounded-lg transition disabled:opacity-50 ${
+                listening
+                  ? "bg-red-500 text-white animate-pulse hover:bg-red-600"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
+            >
+              {listening ? (
+                /* Stop icon */
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              ) : (
+                /* Mic icon */
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8"  y1="23" x2="16" y2="23"/>
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* Send button */}
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !input.trim()}
+            className="px-5 py-2.5 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+          >
+            Send
+          </button>
+        </div>
+
+        {/* Voice hint */}
+        {speechSupported && !listening && (
+          <p className="mt-1.5 text-xs text-gray-400 text-center">
+            🎙️ Click mic to speak your symptoms
+          </p>
+        )}
       </div>
-
     </div>
   );
 }

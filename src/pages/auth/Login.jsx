@@ -1,67 +1,31 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import { useAuth } from "../../context/AuthContext";
-import { loginUser } from "../../services/authService";
-
-/* =========================
-   🔌 BACKEND CONFIG (EDIT ONLY THIS IF NEEDED)
-========================= */
-
-const LOGIN_CONFIG = {
-  endpoint: "LOGIN",
-  method: "POST",
-};
-
-/* ========================= */
+import { loginUser } from "../../services/api";
 
 function Login() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  // Handle input change
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-
-    // Remove error while typing
-    setErrors({
-      ...errors,
-      [e.target.name]: "",
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  // Validation
   const validate = () => {
-    let newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-
+    const newErrors = {};
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.password) newErrors.password = "Password is required";
     return newErrors;
   };
 
-  // Submit handler
   const handleSubmit = async () => {
-    const res = await loginUser(formData);
-
-    if (res.success) {
-      login(res.user); // 🔥 THIS IS IMPORTANT
-    }
     const validationErrors = validate();
-
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -69,25 +33,17 @@ function Login() {
 
     try {
       setLoading(true);
-
-      const { login } = useAuth();
+      const res = await loginUser(formData);
 
       if (res.success) {
-        console.log("User:", res.user);
+        login(res.user, res.token);
+        navigate("/dashboard");
       } else {
-        throw new Error(res.message);
+        setErrors({ general: res.message || "Invalid credentials" });
       }
-
-      console.log("Login Success:", res);
-
-      // future: redirect or store token
-
     } catch (err) {
       console.error("Login Error:", err);
-
-      setErrors({
-        general: "Invalid credentials or server error",
-      });
+      setErrors({ general: "Server error. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -96,17 +52,12 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        
         <h2 className="text-2xl font-bold text-center text-gray-800">
           Welcome Back 👋
         </h2>
-
-        <p className="text-center text-gray-500 mt-1">
-          Login to continue
-        </p>
+        <p className="text-center text-gray-500 mt-1">Login to continue</p>
 
         <div className="mt-6 space-y-4">
-
           <Input
             label="Email"
             type="email"
@@ -116,7 +67,6 @@ function Login() {
             onChange={handleChange}
             error={errors.email}
           />
-
           <Input
             label="Password"
             type="password"
@@ -128,9 +78,7 @@ function Login() {
           />
 
           {errors.general && (
-            <p className="text-red-500 text-sm text-center">
-              {errors.general}
-            </p>
+            <p className="text-red-500 text-sm text-center">{errors.general}</p>
           )}
 
           <Button onClick={handleSubmit} loading={loading}>
@@ -139,8 +87,11 @@ function Login() {
         </div>
 
         <p className="text-sm text-center text-gray-500 mt-6">
-          Don’t have an account?{" "}
-          <span className="text-primary cursor-pointer">
+          Don't have an account?{" "}
+          <span
+            className="text-primary cursor-pointer hover:underline"
+            onClick={() => navigate("/register")}
+          >
             Register
           </span>
         </p>

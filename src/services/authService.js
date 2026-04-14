@@ -76,3 +76,6 @@ export const loginUser = (data) => {
 export const registerUser = (data) => {
   return USE_MOCK ? mockRegister(data) : realRegister(data);
 };
+
+// Re-export from api.js for backward compatibility
+export { loginUser, registerUser } from "./api";

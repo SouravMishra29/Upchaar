@@ -1,63 +1,68 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { fetchProfile } from "../services/api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 🔥 Load user from localStorage (persist login)
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  // 🔥 LOGIN
-  const login = (data) => {
-    const fakeUser = {
-      name: data?.name || "Demo User",
-      email: data?.email || "demo@email.com",
-    };
-
-    setUser(fakeUser);
-    localStorage.setItem("user", JSON.stringify(fakeUser));
-  };
-
-  // 🔥 REGISTER
-  const register = (data) => {
-    const newUser = {
-      name: data.name,
-      email: data.email,
-    };
-
-    // In real app → send to backend
-    console.log("Registered User:", newUser);
-
-    setUser(newUser);
-    localStorage.setItem("user", JSON.stringify(newUser));
-  };
-
-  // 🔥 LOGOUT
+  // ── helpers ────────────────────────────────
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
+  };
+
+  // ── Restore session on app load ────────────
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const stored = localStorage.getItem("user");
+
+    if (token && stored) {
+      // Immediately show stored user so UI doesn't flash
+      try { setUser(JSON.parse(stored)); } catch {}
+
+      // Re-validate token with backend in background
+      fetchProfile()
+        .then((res) => {
+          if (res.success && res.user) {
+            setUser(res.user);
+            localStorage.setItem("user", JSON.stringify(res.user));
+          } else if (res.error?.includes("expired") || res.error?.includes("authenticated")) {
+            // Only clear session if token is truly invalid
+            logout();
+          }
+          // For other errors (network down, etc.) keep the stored session
+        })
+        .catch(() => {
+          // Backend unreachable — keep local session, don't log out
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── login: called after successful /api/auth/login ──
+  const login = (userData, token) => {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+    if (token) localStorage.setItem("token", token);
+  };
+
+  // ── register: same shape as login ──────────
+  const register = (userData, token) => {
+    login(userData, token);
   };
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        login,
-        register,
-        logout,
-        isAuthenticated: !!user, // 🔥 useful flag
-      }}
+      value={{ user, loading, login, register, logout, isAuthenticated: !!user }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-// 🔥 Custom Hook
 export const useAuth = () => useContext(AuthContext);
